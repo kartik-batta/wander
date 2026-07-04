@@ -46,7 +46,7 @@ src/lib/prompts.ts      base prompt + 4 personas + deepen prompt
 ## Live app
 
 - **Production:** _fills in after Vercel deploy_
-- **Repo:** https://github.com/kartik-batta/PromptWars
+- **Repo:** https://github.com/kartik-batta/wander
 
 ## Stack
 
@@ -76,8 +76,8 @@ src/lib/prompts.ts      base prompt + 4 personas + deepen prompt
 Requirements: Node 20+, an `OPENAI_API_KEY`.
 
 ```bash
-git clone https://github.com/kartik-batta/PromptWars.git
-cd PromptWars
+git clone https://github.com/kartik-batta/wander.git
+cd wander
 npm install
 echo "OPENAI_API_KEY=sk-..." > .env.local
 npm run dev
