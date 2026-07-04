@@ -1,10 +1,17 @@
-// OpenAI structured-output schemas.
-//
-// Strict-mode json_schema does not support: minItems / maxItems / minimum /
-// maximum / minLength / pattern. Constraints on stop count (4–6) and
-// hidden_gem_score range (1–5) are enforced via the system prompt instead.
+/**
+ * OpenAI structured-output JSON schemas.
+ *
+ * Strict-mode `json_schema` does NOT support: minItems, maxItems, minimum,
+ * maximum, minLength, maxLength, pattern, format. Constraints on stop count
+ * (4-6) and hidden_gem_score range (1-5) are enforced via the system prompt.
+ *
+ * Every object requires `additionalProperties: false` and every property must
+ * appear in `required`, per OpenAI's strict-mode contract.
+ */
 
-export const JOURNEY_SCHEMA = {
+type JsonSchema = Record<string, unknown>;
+
+export const JOURNEY_SCHEMA: JsonSchema = {
   type: "object",
   properties: {
     stops: {
@@ -33,9 +40,9 @@ export const JOURNEY_SCHEMA = {
   },
   required: ["stops"],
   additionalProperties: false,
-} as const;
+};
 
-export const DEEPEN_SCHEMA = {
+export const DEEPEN_SCHEMA: JsonSchema = {
   type: "object",
   properties: {
     deep_narrative: { type: "string" },
@@ -43,4 +50,4 @@ export const DEEPEN_SCHEMA = {
   },
   required: ["deep_narrative", "deep_heritage"],
   additionalProperties: false,
-} as const;
+};

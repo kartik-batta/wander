@@ -15,6 +15,13 @@ function vibeLabel(v: Vibe): string {
   return VIBES.find((x) => x.key === v)?.label ?? v;
 }
 
+/**
+ * Standard focus-visible ring applied to every interactive element.
+ * Kept in one constant so a single change updates keyboard focus everywhere.
+ */
+const FOCUS_RING =
+  "focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg";
+
 export default function Home() {
   const [destination, setDestination] = useState("");
   const [vibe, setVibe] = useState<Vibe>("heritage");
@@ -108,57 +115,95 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen bg-bg text-ink">
-      <section className="mx-auto max-w-wander px-4 py-16 md:px-6 md:py-24">
-        <p className="mb-6 text-xs uppercase tracking-[0.22em] text-muted">
-          Wander
-        </p>
-
-        {!journey && (
-          <HomeForm
-            destination={destination}
-            onDestinationChange={setDestination}
-            vibe={vibe}
-            onVibeChange={setVibe}
-            loading={loading}
-            onSubmit={() => generate()}
-          />
+    <>
+      <a
+        href="#wander-main"
+        className={clsx(
+          "sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-accent focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-surface",
+          FOCUS_RING
         )}
+      >
+        Skip to main content
+      </a>
 
-        {journey && (
-          <JourneyView
-            journey={journey}
-            vibe={vibe}
-            loading={loading}
-            expandedId={expandedId}
-            deepeningId={deepeningId}
-            onToggleExpand={toggleExpand}
-            onRegenerate={(v) => generate(v)}
-            onReset={resetToForm}
-          />
-        )}
-      </section>
+      <main
+        id="wander-main"
+        className="min-h-screen bg-bg text-ink"
+        aria-busy={loading}
+      >
+        <section className="mx-auto max-w-wander px-4 py-16 md:px-6 md:py-24">
+          <p className="mb-6 text-xs uppercase tracking-[0.22em] text-muted">
+            Wander
+          </p>
 
-      {loading && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-bg/70 backdrop-blur-[1px]">
-          <div className="rounded-lg border border-border bg-surface px-6 py-4 shadow-card">
-            <p className="font-serif text-base text-ink">
-              Weaving your journey through {destination || "the city"}…
-            </p>
+          {!journey && (
+            <HomeForm
+              destination={destination}
+              onDestinationChange={setDestination}
+              vibe={vibe}
+              onVibeChange={setVibe}
+              loading={loading}
+              onSubmit={() => generate()}
+            />
+          )}
+
+          {journey && (
+            <JourneyView
+              journey={journey}
+              vibe={vibe}
+              loading={loading}
+              expandedId={expandedId}
+              deepeningId={deepeningId}
+              onToggleExpand={toggleExpand}
+              onRegenerate={(v) => generate(v)}
+              onReset={resetToForm}
+            />
+          )}
+        </section>
+
+        {/* Loading overlay: role="status" + aria-live announces to screen readers. */}
+        {loading && (
+          <div
+            className="fixed inset-0 z-40 flex items-center justify-center bg-bg/70 backdrop-blur-[1px]"
+            role="status"
+            aria-live="polite"
+          >
+            <div className="rounded-lg border border-border bg-surface px-6 py-4 shadow-card">
+              <p className="font-serif text-base text-ink">
+                Weaving your journey through {destination || "the city"}
+                <span className="sr-only">, please wait</span>&hellip;
+              </p>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {error && (
-        <button
-          className="fixed right-6 top-6 z-50 max-w-xs rounded-lg border border-danger bg-surface px-4 py-3 text-left text-sm text-danger shadow-card"
-          onClick={() => setError(null)}
-          aria-live="polite"
-        >
-          {error}
-        </button>
-      )}
-    </main>
+        {/*
+         * Error region: role="alert" + aria-live="assertive" so screen readers
+         * announce immediately. The inner button lets sighted users dismiss
+         * with a click; keyboard users get the same via focus + Enter.
+         */}
+        {error && (
+          <div
+            role="alert"
+            aria-live="assertive"
+            className="fixed right-6 top-6 z-50 max-w-xs rounded-lg border border-danger bg-surface shadow-card"
+          >
+            <button
+              type="button"
+              onClick={() => setError(null)}
+              className={clsx(
+                "w-full px-4 py-3 text-left text-sm text-danger",
+                FOCUS_RING,
+                "rounded-lg"
+              )}
+              aria-label={`Dismiss error: ${error}`}
+            >
+              {error}
+            </button>
+          </div>
+        )}
+      </main>
+    </>
   );
 }
 
@@ -187,6 +232,7 @@ function HomeForm(props: {
           onSubmit();
         }}
         className="mt-10 rounded-lg border border-border bg-surface p-6 shadow-card"
+        aria-label="Generate a new journey"
       >
         <label
           className="block text-sm font-semibold text-ink"
@@ -196,40 +242,67 @@ function HomeForm(props: {
         </label>
         <input
           id="destination"
+          name="destination"
           type="text"
           value={destination}
           onChange={(e) => onDestinationChange(e.target.value)}
           placeholder="Try Jaipur, Kyoto, Lisbon…"
-          className="mt-2 w-full rounded-lg border border-border bg-bg px-4 py-3 font-serif text-lg text-ink placeholder:text-muted focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30"
+          className={clsx(
+            "mt-2 w-full rounded-lg border border-border bg-bg px-4 py-3 font-serif text-lg text-ink placeholder:text-muted",
+            "focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30",
+            "disabled:opacity-60"
+          )}
           disabled={loading}
           maxLength={100}
           autoComplete="off"
+          spellCheck="false"
+          aria-required="true"
+          aria-describedby="destination-hint"
         />
+        <p id="destination-hint" className="mt-1 text-xs text-muted">
+          Any city with a story. Max 100 characters.
+        </p>
 
-        <p className="mt-6 text-sm font-semibold text-ink">Vibe</p>
-        <div className="mt-2 flex flex-wrap gap-2">
-          {VIBES.map((v) => (
-            <button
-              key={v.key}
-              type="button"
-              onClick={() => onVibeChange(v.key)}
-              disabled={loading}
-              className={clsx(
-                "rounded-full border px-4 py-2 text-sm transition-colors",
-                vibe === v.key
-                  ? "border-accent bg-accent text-surface"
-                  : "border-accent/40 bg-transparent text-accent hover:border-accent"
-              )}
-            >
-              {v.label}
-            </button>
-          ))}
-        </div>
+        <fieldset className="mt-6">
+          <legend className="text-sm font-semibold text-ink">Vibe</legend>
+          <p className="mt-1 text-xs text-muted">
+            Pick a narrator. Same city, different soul.
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2" role="radiogroup" aria-label="Vibe">
+            {VIBES.map((v) => {
+              const active = vibe === v.key;
+              return (
+                <button
+                  key={v.key}
+                  type="button"
+                  role="radio"
+                  aria-checked={active}
+                  onClick={() => onVibeChange(v.key)}
+                  disabled={loading}
+                  className={clsx(
+                    "rounded-full border px-4 py-2 text-sm font-semibold transition-colors",
+                    active
+                      ? "border-accent bg-accent text-surface"
+                      : "border-accent-hover/60 bg-transparent text-accent-hover hover:border-accent-hover",
+                    "disabled:opacity-60",
+                    FOCUS_RING
+                  )}
+                >
+                  {v.label}
+                </button>
+              );
+            })}
+          </div>
+        </fieldset>
 
         <button
           type="submit"
           disabled={loading}
-          className="mt-8 w-full rounded-lg bg-accent px-6 py-3 text-base font-semibold text-surface transition-colors hover:bg-accent-hover disabled:opacity-60"
+          className={clsx(
+            "mt-8 w-full rounded-lg bg-accent px-6 py-3 text-base font-semibold text-surface transition-colors",
+            "hover:bg-accent-hover disabled:opacity-60",
+            FOCUS_RING
+          )}
         >
           {loading ? "Weaving your journey…" : "Generate Journey"}
         </button>
@@ -262,62 +335,90 @@ function JourneyView(props: {
           </h1>
         </div>
         <button
+          type="button"
           onClick={onReset}
-          className="whitespace-nowrap text-sm text-accent hover:text-accent-hover"
+          className={clsx(
+            "whitespace-nowrap rounded text-sm font-semibold text-accent-hover hover:text-accent",
+            FOCUS_RING
+          )}
         >
           New destination
         </button>
       </div>
 
-      <div className="mt-10 space-y-6">
-        {journey.stops.map((stop) => (
-          <StopCard
-            key={stop.id}
-            stop={stop}
-            expanded={expandedId === stop.id}
-            deepening={deepeningId === stop.id}
-            onClick={() => onToggleExpand(stop)}
-          />
+      <ol className="mt-10 space-y-6" aria-label={`Journey through ${journey.destination}`}>
+        {journey.stops.map((stop, index) => (
+          <li key={stop.id}>
+            <StopCard
+              stop={stop}
+              index={index}
+              expanded={expandedId === stop.id}
+              deepening={deepeningId === stop.id}
+              onClick={() => onToggleExpand(stop)}
+            />
+          </li>
         ))}
-      </div>
+      </ol>
 
-      <div className="mt-12 rounded-lg border border-border bg-surface-alt p-6">
+      <section
+        className="mt-12 rounded-lg border border-border bg-surface-alt p-6"
+        aria-label="Regenerate journey with a different vibe"
+      >
         <p className="text-sm font-semibold text-ink">
           Regenerate with a different vibe
         </p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {VIBES.map((v) => (
-            <button
-              key={v.key}
-              onClick={() => onRegenerate(v.key)}
-              disabled={loading}
-              className={clsx(
-                "rounded-full border px-4 py-2 text-sm transition-colors",
-                journey.vibe === v.key
-                  ? "border-accent bg-accent text-surface"
-                  : "border-accent/40 bg-transparent text-accent hover:border-accent"
-              )}
-            >
-              {v.label}
-            </button>
-          ))}
+        <div className="mt-3 flex flex-wrap gap-2" role="radiogroup" aria-label="Choose a different vibe">
+          {VIBES.map((v) => {
+            const active = journey.vibe === v.key;
+            return (
+              <button
+                key={v.key}
+                type="button"
+                role="radio"
+                aria-checked={active}
+                onClick={() => onRegenerate(v.key)}
+                disabled={loading}
+                className={clsx(
+                  "rounded-full border px-4 py-2 text-sm font-semibold transition-colors",
+                  active
+                    ? "border-accent bg-accent text-surface"
+                    : "border-accent-hover/60 bg-transparent text-accent-hover hover:border-accent-hover",
+                  "disabled:opacity-60",
+                  FOCUS_RING
+                )}
+              >
+                {v.label}
+              </button>
+            );
+          })}
         </div>
-      </div>
+      </section>
     </>
   );
 }
 
 function StopCard(props: {
   stop: JourneyStop;
+  index: number;
   expanded: boolean;
   deepening: boolean;
   onClick: () => void;
 }) {
-  const { stop, expanded, deepening, onClick } = props;
+  const { stop, index, expanded, deepening, onClick } = props;
+  const detailId = `stop-${stop.id}-detail`;
   return (
     <article className="rounded-lg border border-border bg-surface p-6 shadow-card">
-      <button onClick={onClick} className="w-full text-left">
-        <h2 className="font-serif text-xl font-semibold text-ink">
+      <button
+        type="button"
+        onClick={onClick}
+        className={clsx("w-full rounded text-left", FOCUS_RING)}
+        aria-expanded={expanded}
+        aria-controls={detailId}
+      >
+        <p className="text-xs uppercase tracking-wider text-muted">
+          Stop {index + 1}
+        </p>
+        <h2 className="mt-1 font-serif text-xl font-semibold text-ink">
           {stop.name}
         </h2>
         <p className="mt-1 font-serif text-sm italic text-muted">
@@ -328,44 +429,53 @@ function StopCard(props: {
         </p>
       </button>
 
-      <div className="mt-5 space-y-2 text-xs">
-        <div className="flex flex-wrap gap-1 text-muted">
-          <span className="uppercase tracking-wider">Heritage &middot;&nbsp;</span>
-          <span className="text-ink">{stop.heritage_note}</span>
+      <dl className="mt-5 space-y-2 text-xs">
+        <div className="flex flex-wrap gap-1">
+          <dt className="uppercase tracking-wider text-muted">Heritage&nbsp;&middot;&nbsp;</dt>
+          <dd className="text-ink">{stop.heritage_note}</dd>
         </div>
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-muted">
-          <span className="inline-flex items-center gap-2 uppercase tracking-wider">
-            Hidden gem
-            <GemBadge score={stop.hidden_gem_score} />
-          </span>
-          <span className="flex flex-wrap gap-1">
-            <span className="uppercase tracking-wider">Nearby &middot;&nbsp;</span>
-            <span className="text-ink">{stop.nearby_experience}</span>
-          </span>
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-1">
+          <div className="inline-flex items-center gap-2">
+            <dt className="uppercase tracking-wider text-muted">Hidden gem</dt>
+            <dd>
+              <GemBadge score={stop.hidden_gem_score} />
+            </dd>
+          </div>
+          <div className="flex flex-wrap gap-1">
+            <dt className="uppercase tracking-wider text-muted">Nearby&nbsp;&middot;&nbsp;</dt>
+            <dd className="text-ink">{stop.nearby_experience}</dd>
+          </div>
         </div>
-      </div>
+      </dl>
 
-      {expanded && (
-        <div className="mt-6 border-t border-border pt-6">
-          {deepening && !stop.deep_narrative && (
-            <p className="font-serif text-sm text-muted">
-              Deepening the story…
-            </p>
-          )}
-          {stop.deep_narrative && (
-            <>
-              <p className="font-serif text-base leading-relaxed text-ink">
-                {stop.deep_narrative}
+      <div
+        id={detailId}
+        hidden={!expanded}
+        aria-live="polite"
+      >
+        {expanded && (
+          <div className="mt-6 border-t border-border pt-6">
+            {deepening && !stop.deep_narrative && (
+              <p className="font-serif text-sm text-muted" role="status">
+                Deepening the story
+                <span className="sr-only">, please wait</span>&hellip;
               </p>
-              {stop.deep_heritage && (
-                <p className="mt-4 font-serif text-sm leading-relaxed text-muted">
-                  {stop.deep_heritage}
+            )}
+            {stop.deep_narrative && (
+              <>
+                <p className="font-serif text-base leading-relaxed text-ink">
+                  {stop.deep_narrative}
                 </p>
-              )}
-            </>
-          )}
-        </div>
-      )}
+                {stop.deep_heritage && (
+                  <p className="mt-4 font-serif text-sm leading-relaxed text-muted">
+                    {stop.deep_heritage}
+                  </p>
+                )}
+              </>
+            )}
+          </div>
+        )}
+      </div>
     </article>
   );
 }
@@ -373,10 +483,15 @@ function StopCard(props: {
 function GemBadge({ score }: { score: number }) {
   const s = Math.max(0, Math.min(5, Math.round(score)));
   return (
-    <span className="inline-flex items-center gap-[3px] align-middle">
+    <span
+      className="inline-flex items-center gap-[3px] align-middle"
+      role="img"
+      aria-label={`Hidden gem score ${s} out of 5`}
+    >
       {[1, 2, 3, 4, 5].map((n) => (
         <span
           key={n}
+          aria-hidden="true"
           className={clsx(
             "block h-2 w-2 rounded-full",
             n <= s ? "bg-accent" : "bg-border"

@@ -1,7 +1,8 @@
 import OpenAI from "openai";
-import { isVibe, type Journey, type JourneyStop } from "@/lib/types";
+import type { Journey, JourneyStop } from "@/lib/types";
 import { JOURNEY_SCHEMA } from "@/lib/schemas";
 import { JOURNEY_SYSTEM_BASE, VIBE_PERSONAS } from "@/lib/prompts";
+import { parseJourneyRequest } from "@/lib/validation";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,28 +16,15 @@ export async function POST(req: Request) {
       );
     }
 
-    const body = await req.json().catch(() => null);
-    const destination = String(body?.destination ?? "").trim();
-    const vibe = body?.vibe;
-
-    if (!destination) {
+    const rawBody = await req.json().catch(() => null);
+    const parsed = parseJourneyRequest(rawBody);
+    if (!parsed.ok) {
       return Response.json(
-        { ok: false, error: "We need somewhere to wander." },
-        { status: 400 }
+        { ok: false, error: parsed.error },
+        { status: parsed.status }
       );
     }
-    if (destination.length > 100) {
-      return Response.json(
-        { ok: false, error: "Destination is too long." },
-        { status: 400 }
-      );
-    }
-    if (!isVibe(vibe)) {
-      return Response.json(
-        { ok: false, error: "Unknown vibe." },
-        { status: 400 }
-      );
-    }
+    const { destination, vibe } = parsed.value;
 
     const client = new OpenAI({ timeout: 25_000, maxRetries: 1 });
 
@@ -55,7 +43,7 @@ export async function POST(req: Request) {
         type: "json_schema",
         json_schema: {
           name: "Journey",
-          schema: JOURNEY_SCHEMA as unknown as Record<string, unknown>,
+          schema: JOURNEY_SCHEMA,
           strict: true,
         },
       },
@@ -69,9 +57,9 @@ export async function POST(req: Request) {
       );
     }
 
-    let parsed: { stops: Array<Omit<JourneyStop, "id">> };
+    let raw: { stops: Array<Omit<JourneyStop, "id">> };
     try {
-      parsed = JSON.parse(content);
+      raw = JSON.parse(content);
     } catch {
       return Response.json(
         { ok: false, error: "Malformed response from the storyteller." },
@@ -79,14 +67,14 @@ export async function POST(req: Request) {
       );
     }
 
-    if (!Array.isArray(parsed.stops) || parsed.stops.length === 0) {
+    if (!Array.isArray(raw.stops) || raw.stops.length === 0) {
       return Response.json(
         { ok: false, error: "The storyteller returned no stops." },
         { status: 502 }
       );
     }
 
-    const stops: JourneyStop[] = parsed.stops.slice(0, 6).map((s, i) => ({
+    const stops: JourneyStop[] = raw.stops.slice(0, 6).map((s, i) => ({
       ...s,
       id: `s${i}`,
     }));

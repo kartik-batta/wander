@@ -1,7 +1,7 @@
 import OpenAI from "openai";
-import { isVibe, type JourneyStop } from "@/lib/types";
 import { DEEPEN_SCHEMA } from "@/lib/schemas";
 import { DEEPEN_SYSTEM, VIBE_PERSONAS } from "@/lib/prompts";
+import { parseDeepenRequest } from "@/lib/validation";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,17 +15,15 @@ export async function POST(req: Request) {
       );
     }
 
-    const body = await req.json().catch(() => null);
-    const destination = String(body?.destination ?? "").trim();
-    const vibe = body?.vibe;
-    const stop = body?.stop as JourneyStop | undefined;
-
-    if (!destination || !stop || !stop.name || !isVibe(vibe)) {
+    const rawBody = await req.json().catch(() => null);
+    const parsed = parseDeepenRequest(rawBody);
+    if (!parsed.ok) {
       return Response.json(
-        { ok: false, error: "Missing destination, vibe, or stop." },
-        { status: 400 }
+        { ok: false, error: parsed.error },
+        { status: parsed.status }
       );
     }
+    const { destination, vibe, stop } = parsed.value;
 
     const client = new OpenAI({ timeout: 12_000, maxRetries: 1 });
 
@@ -59,7 +57,7 @@ export async function POST(req: Request) {
         type: "json_schema",
         json_schema: {
           name: "Deepen",
-          schema: DEEPEN_SCHEMA as unknown as Record<string, unknown>,
+          schema: DEEPEN_SCHEMA,
           strict: true,
         },
       },
@@ -73,9 +71,9 @@ export async function POST(req: Request) {
       );
     }
 
-    let parsed: { deep_narrative: string; deep_heritage: string };
+    let parsedContent: { deep_narrative: string; deep_heritage: string };
     try {
-      parsed = JSON.parse(content);
+      parsedContent = JSON.parse(content);
     } catch {
       return Response.json(
         { ok: false, error: "Malformed response while deepening." },
@@ -83,9 +81,10 @@ export async function POST(req: Request) {
       );
     }
 
-    return Response.json({ ok: true, data: parsed });
+    return Response.json({ ok: true, data: parsedContent });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown deepen error.";
+    const message =
+      err instanceof Error ? err.message : "Unknown deepen error.";
     return Response.json({ ok: false, error: message }, { status: 500 });
   }
 }

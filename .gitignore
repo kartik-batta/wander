@@ -54,3 +54,7 @@ coverage/
 
 # TypeScript incremental build cache
 *.tsbuildinfo
+
+# Private evaluator feedback / screenshots
+evaluation-result.png
+evaluation-*.png
