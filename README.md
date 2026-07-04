@@ -45,7 +45,7 @@ src/lib/prompts.ts      base prompt + 4 personas + deepen prompt
 
 ## Live app
 
-- **Production:** _fills in after Vercel deploy_
+- **Production:** https://wander-genai.vercel.app/
 - **Repo:** https://github.com/kartik-batta/wander
 
 ## Stack
