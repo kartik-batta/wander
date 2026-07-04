@@ -13,7 +13,12 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       reporter: ["text", "html"],
-      include: ["src/lib/**/*.ts", "src/app/**/*.{ts,tsx}"],
+      include: [
+        "src/lib/**/*.ts",
+        "src/hooks/**/*.ts",
+        "src/components/**/*.{ts,tsx}",
+        "src/app/**/*.{ts,tsx}",
+      ],
       exclude: ["src/app/globals.css", "**/*.d.ts"],
     },
   },

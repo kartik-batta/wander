@@ -193,4 +193,36 @@ describe("Home page", () => {
     // Card is still there — the error didn't unmount the journey view.
     expect(screen.getByRole("heading", { level: 2, name: /amer fort/i })).toBeInTheDocument();
   });
+
+  it("clicking New destination returns to the home form", async () => {
+    const user = userEvent.setup();
+    mockFetchSequence(jsonResponse(journeyPayload));
+
+    render(<Home />);
+    await user.type(screen.getByLabelText(/destination/i), "Jaipur");
+    await user.click(screen.getByRole("button", { name: /generate journey/i }));
+
+    // Wait for journey view.
+    await screen.findByRole("heading", { level: 1, name: /your journey/i });
+
+    await user.click(screen.getByRole("button", { name: /new destination/i }));
+
+    // Home form is back.
+    expect(screen.getByRole("heading", { level: 1, name: /wander through/i })).toBeInTheDocument();
+    expect(screen.getByLabelText(/destination/i)).toBeInTheDocument();
+  });
+
+  it("falls back to a friendly error when the fetch call throws a non-Error", async () => {
+    const user = userEvent.setup();
+    // fetch that rejects with a bare string — exercises the non-Error branch.
+    const fetchStub = vi.fn().mockRejectedValue("boom");
+    vi.stubGlobal("fetch", fetchStub);
+
+    render(<Home />);
+    await user.type(screen.getByLabelText(/destination/i), "Jaipur");
+    await user.click(screen.getByRole("button", { name: /generate journey/i }));
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent(/couldn't reach the storyteller/i);
+  });
 });
