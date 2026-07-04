@@ -11,6 +11,9 @@ concurrency:
   group: vercel-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 env:
   VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
   VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
@@ -46,6 +49,9 @@ jobs:
     if: github.event_name == 'pull_request'
     needs: quality
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
     environment:
       name: preview
       url: ${{ steps.deploy.outputs.preview-url }}
